@@ -1,14 +1,14 @@
-use anyhow::{Result, anyhow, Context};
+use anyhow::{anyhow, Context, Result};
+
+const OPERATORS: [char; 10] = ['+', '-', '*', 'x', '×', '/', '÷', '^', '(', ')'];
+const PRIORITY_OPERATORS: [char; 6] = ['*', 'x', '×', '/', '÷', '^'];
+const NON_PRIORITY_OPERATORS: [char; 2] = ['+', '-'];
 
 pub fn calculate(expression: &str) -> Result<f64> {
-    let operators = ['+', '-', '*', 'x', '×', '/', '÷'];
-    let priority_operators = ['*', 'x', '×', '/', '÷'];
-    let non_priority_operators = ['+', '-'];
+    let mut parsed = parse(&handle_parenthesis(expression)?, &OPERATORS)?;
 
-    let mut parsed = parse(expression, &operators)?;
-
-    perform_operations(&mut parsed, &priority_operators)?;
-    perform_operations(&mut parsed, &non_priority_operators)?;
+    perform_operations(&mut parsed, &PRIORITY_OPERATORS)?;
+    perform_operations(&mut parsed, &NON_PRIORITY_OPERATORS)?;
 
     let result = if parsed.len() == 1 {
         parsed[0].parse::<f64>()?
@@ -54,9 +54,9 @@ fn perform_operations(vec: &mut Vec<String>, operators: &[char]) -> Result<()> {
             vec[i] = partial_result.to_string();
             vec.remove(i + 1);
             vec.remove(i - 1);
-        }
-
+        } else {
         i += 1;
+        }
     }
 
     vec.retain(|x| *x != "");
@@ -70,15 +70,85 @@ fn calculate_operation(operation: &str, a: f64, b: f64) -> Result<f64> {
         "-" => Ok(a - b),
         "*" | "x" | "×" => Ok(a * b),
         "/" | "÷" => Ok(a / b),
+        "^" => Ok(a.powf(b)),
         _ => Err(anyhow!("Unknown operation {}", operation)),
     }
 }
 
+fn handle_parenthesis(expression: &str) -> Result<String> {
+    if !expression.contains("(") || !expression.contains(")") {
+        if expression.contains("(") || expression.contains("(") {
+            return Err(anyhow!("Parenthesis not matching"));
+        }
+        return Ok(expression.to_string());
+    }
+
+    let mut result = expression
+        .split(|x| x == '(' || x == ')')
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>();
+
+    let mut i = 1;
+    while i < result.len() {
+        let mut parsed_substring = parse(&result[i], &OPERATORS)?;
+
+        perform_operations(&mut parsed_substring, &PRIORITY_OPERATORS)?;
+        perform_operations(&mut parsed_substring, &NON_PRIORITY_OPERATORS)?;
+
+        if parsed_substring.len() == 1 {
+            result[i] = String::from(&parsed_substring[0]);
+        }
+
+        i += 2;
+    }
+
+    Ok(result.into_iter().collect::<String>())
+}
+
 #[cfg(test)]
 mod tests {
-    // use super::*;
+    use super::*;
+
+    use rand::Rng;
 
     #[test]
-    fn _test_1() {
+    fn test_calculate_operation() -> Result<()> {
+        let mut rng = rand::thread_rng();
+
+        let a = rng.random::<f64>();
+        let b = rng.random::<f64>();
+
+        assert_eq!(calculate_operation("+", a, b)?, a + b);
+        assert_eq!(calculate_operation("-", a, b)?, a - b);
+        assert_eq!(calculate_operation("*", a, b)?, a * b);
+        assert_eq!(calculate_operation("x", a, b)?, a * b);
+        assert_eq!(calculate_operation("×", a, b)?, a * b);
+        assert_eq!(calculate_operation("/", a, b)?, a / b);
+        assert_eq!(calculate_operation("÷", a, b)?, a / b);
+        assert_eq!(calculate_operation("^", a, b)?, a.powf(b));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse() -> Result<()> {
+        assert_eq!(parse("1+1", &OPERATORS)?, vec!["1", "+", "1"]);
+        assert_eq!(parse("1-1*5", &OPERATORS)?, vec!["1", "-", "1", "*", "5"]);
+        assert_eq!(parse("1.2x3", &OPERATORS)?, vec!["1.2", "x", "3"]);
+        assert_eq!(parse("1,2×5^2", &OPERATORS)?, vec!["1.2", "×", "5", "^", "2"]);
+        assert_eq!(parse("112/13÷10000000000000000000", &OPERATORS)?, vec!["112", "/", "13", "÷", "10000000000000000000"]);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_calculate() -> Result<()> {
+        assert_eq!(calculate("1+1")?, 2f64);
+        assert_eq!(calculate("1-1*5")?, -4f64);
+        assert_eq!(calculate("1.2x3")?, 3.6);
+        assert_eq!(calculate("1,2×5^2")?, 30f64);
+        assert_eq!(calculate("112/16*1000000000000000")?, 7000000000000000f64);
+
+        Ok(())
     }
 }
