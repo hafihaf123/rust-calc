@@ -25,8 +25,6 @@ fn main() -> Result<()>{
         Some(string) => string
     };
 
-    println!("{}", expression);
-
     let result = calculate(&expression)?;
     println!("{}", result);
 
