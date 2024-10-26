@@ -25,14 +25,15 @@ fn parse(expression: &str) -> Result<Vec<String>> {
 
     let mut result = Vec::new();
     let mut last = 0;
-    for (index, matched) in expression_new
-        .match_indices(OPERATORS) {
+
+    for (index, matched) in expression_new.match_indices(OPERATORS) {
         if last != index {
             result.push(expression_new[last..index].trim().to_string());
         }
         result.push(matched.trim().to_string());
         last = index + matched.len();
     }
+
     if last < expression_new.len() {
         result.push(expression_new[last..].trim().to_string());
     }
@@ -44,6 +45,7 @@ fn parse(expression: &str) -> Result<Vec<String>> {
 
 fn perform_operations(vec: &mut Vec<String>, operators: &[char]) -> Result<()> {
     let mut i = 0;
+
     while i < vec.len() {
         let s = &vec[i];
 
@@ -64,7 +66,7 @@ fn perform_operations(vec: &mut Vec<String>, operators: &[char]) -> Result<()> {
             vec.remove(i + 1);
             vec.remove(i - 1);
         } else {
-        i += 1;
+            i += 1;
         }
     }
 
