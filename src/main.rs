@@ -1,7 +1,7 @@
 use std::io::{stdin, stdout, Write};
 use clap::Parser;
 use anyhow::Result;
-use rust_calc::calculate;
+use rust_calc::MathExpression;
 
 #[derive(Parser)]
 #[command(name = "calc")]
@@ -13,19 +13,19 @@ struct Cli {
 fn main() -> Result<()>{
     let cli = Cli::parse();
 
-    let expression = match cli.expression {
+    let mut expression = match cli.expression {
         None => {
             println!("Enter expression:");
             let mut input_text = String::new();
             print!("\t> ");
             stdout().flush()?;
             stdin().read_line(&mut input_text)?;
-            input_text.trim().to_string()
+            MathExpression::new(input_text.trim())?
         }
-        Some(string) => string
+        Some(string) => MathExpression::new(&string)?
     };
 
-    let result = calculate(&expression)?;
+    let result = expression.calculate()?;
     println!("{}", result);
 
     Ok(())
