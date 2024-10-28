@@ -1,5 +1,7 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use std::collections::BTreeMap;
+use std::str::FromStr;
+use bigdecimal::BigDecimal;
 
 pub struct MathExpression {
     /// Supported non-number characters used for splitting the expression
@@ -48,13 +50,15 @@ impl MathExpression {
     /// # Examples
     ///
     /// ```
+    /// use std::str::FromStr;
+    /// use bigdecimal::BigDecimal;
     /// use rust_calc::MathExpression;
     /// let mut expression = MathExpression::new("3 + 5 * 1")?;
     /// let result = expression.calculate()?;
-    /// assert_eq!(result, 8.0);
+    /// assert_eq!(result, BigDecimal::from_str("8.0")?);
     /// # anyhow::Ok(())
     /// ```
-    pub fn calculate(&mut self) -> Result<f64> {
+    pub fn calculate(&mut self) -> Result<BigDecimal> {
         self.parse()?;
         // let mut parsed = parse(&handle_parenthesis(expression)?)?;
 
@@ -62,10 +66,10 @@ impl MathExpression {
 
         match &self.parsed_expression {
             Some(vec) => {
-                if vec.len() == 1 {
-                    return Ok(vec.first().unwrap().parse::<f64>()?);
+                if vec.len() != 1 {
+                    return Err(anyhow!("MathExpression operation performing error"));
                 }
-                Err(anyhow!("MathExpression operation performing error"))
+                Ok(BigDecimal::from_str(vec.first().unwrap())?)
             }
             None => Err(anyhow!("MathExpression operation performed an empty result"))
         }
@@ -177,31 +181,18 @@ impl MathExpression {
             while i < vec.len() {
                 let s = &vec[i];
 
-                if vec.get(i + 1).is_none() {
+                if vec.get(i + 1).is_none() || s.len() != 1 || !operators.contains(&s.chars().next().unwrap()) || i <= 0 {
                     i += 1;
                     continue;
                 }
+                
+                let operation = MathOperation::new(s, &vec[i - 1], &vec[i+1])?;
 
-                if s.len() == 1 && operators.contains(&s.chars().next().unwrap()) && i > 0 {
-                    let a = vec[i - 1].parse::<f64>()
-                        .with_context(|| format!(r#"\
-                            Your input cannot contain multiple operators without a number between them.
-                            This string could not be converted to a number: "{}"
-                            "#, vec[i - 1]))?;
-                    let b = vec[i + 1].parse::<f64>()
-                        .with_context(|| format!(r#"\
-                            Your input cannot contain multiple operators without a number between them.
-                            This string could not be converted to a number: "{}"
-                            "#, vec[i - 1]))?;
+                let partial_result = operation.calculate()?;
 
-                    let partial_result = calculate_operation(s, a, b)?;
-
-                    vec[i] = partial_result.to_string();
-                    vec.remove(i + 1);
-                    vec.remove(i - 1);
-                } else {
-                    i += 1;
-                }
+                vec[i] = partial_result.to_string();
+                vec.remove(i + 1);
+                vec.remove(i - 1);
             }
         }
 
@@ -301,57 +292,69 @@ impl MathExpression {
     }
 }
 
-/// calculates an operation based on an operator and two 64-bit floats, returning a 64-bit float representing the result of the operation
-///
-/// # Arguments
-///
-/// - `operator` - a string slice (`&str`) representing an operator for the desired operation
-/// - `a` - a 64-bit float (`f64`) representing the left side of the operation
-/// - `b` - a 64-bit float (`f64`) representing the right side of the operation
-///
-/// # Returns
-///
-/// the function returns an `anyhow::Result<f64>`
-/// - `Ok(f64)`
-///     - when the operation was successful
-///     - wrapped inside is a 64-bit float (`f64`) representing the result of the operation `<a> <operator> <b>`
-///
-/// # Errors
-///
-/// the function may return an error in the following scenarios:
-/// - the operator is unknown or not defined
-/// - a mathematical error occurs, such as division by zero
-///
-/// # Example
-///
-/// ```
-/// # use rust_calc::calculate_operation;
-/// let (a, b) = (4.2f64, 2f64);
-/// assert_eq!(calculate_operation("+", a, b)?, 6.2f64);
-/// assert_eq!(calculate_operation("-", a, b)?, 2.2f64);
-/// assert_eq!(calculate_operation("*", a, b)?, 8.4f64);
-/// assert_eq!(calculate_operation("/", a, b)?, 2.1f64);
-/// assert_eq!(calculate_operation("^", a, b)?, 17.64f64);
-/// # anyhow::Ok(())
-/// ```
-pub fn calculate_operation(operator: &str, a: f64, b: f64) -> Result<f64> {
-    match operator {
-        "+" => Ok(a + b),
-        "-" => Ok(a - b),
-        "*" | "x" | "×" => Ok(a * b),
-        "/" | "÷" => {
-            if b == 0f64 {
-                return Err(anyhow!("Cannot divide by zero"));
-            }
-            Ok(a / b)
-        },
-        "^" => Ok(a.powf(b)),
-        _ => Err(anyhow!("Unknown operator: '{}'", operator)),
+pub struct MathOperation<'a> {
+    operator: &'a str,
+    operand1: BigDecimal,
+    operand2: BigDecimal
+}
+
+impl MathOperation<'_> {
+    pub fn new<'a>(operator: &'a str, operand1: &str, operand2: &str) -> Result<MathOperation<'a>> {
+        Ok(MathOperation {operator, operand1: operand1.parse()?, operand2: operand2.parse()?})
+    }
+
+    /// calculates an operation based on an operator and two 64-bit floats, returning a 64-bit float representing the result of the operation
+    ///
+    /// # Arguments
+    ///
+    /// - `operator` - a string slice (`&str`) representing an operator for the desired operation
+    /// - `a` - a 64-bit float (`f64`) representing the left side of the operation
+    /// - `b` - a 64-bit float (`f64`) representing the right side of the operation
+    ///
+    /// # Returns
+    ///
+    /// the function returns an `anyhow::Result<f64>`
+    /// - `Ok(f64)`
+    ///     - when the operation was successful
+    ///     - wrapped inside is a 64-bit float (`f64`) representing the result of the operation `<a> <operator> <b>`
+    ///
+    /// # Errors
+    ///
+    /// the function may return an error in the following scenarios:
+    /// - the operator is unknown or not defined
+    /// - a mathematical error occurs, such as division by zero
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use std::str::FromStr;
+    /// use bigdecimal::BigDecimal;
+    /// use rust_calc::MathOperation;
+    /// let (a, b) = ("4.2", "2");
+    /// let operation = MathOperation::new("+", a, b)?;
+    /// assert_eq!(operation.calculate()?, BigDecimal::from_str("6.2")?);
+    /// # anyhow::Ok(())
+    /// ```
+    pub fn calculate(&self) -> Result<BigDecimal> {
+        match self.operator {
+            "+" => Ok(&self.operand1 + &self.operand2),
+            "-" => Ok(&self.operand1 - &self.operand2),
+            "*" | "x" | "×" => Ok(&self.operand1 * &self.operand2),
+            "/" | "÷" => {
+                if self.operand2 == BigDecimal::from(0) {
+                    return Err(anyhow!("Cannot divide by zero"));
+                }
+                Ok(&self.operand1 / &self.operand2)
+            },
+            // "^" => Ok(),
+            _ => Err(anyhow!("Unknown operator: '{}'", self.operator)),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use bigdecimal::FromPrimitive;
     use super::*;
 
     use rand::Rng;
@@ -360,17 +363,25 @@ mod tests {
     fn test_calculate_operation() -> Result<()> {
         let mut rng = rand::thread_rng();
 
-        let a = rng.random::<f64>();
-        let b = rng.random::<f64>();
-
-        assert_eq!(calculate_operation("+", a, b)?, a + b);
-        assert_eq!(calculate_operation("-", a, b)?, a - b);
-        assert_eq!(calculate_operation("*", a, b)?, a * b);
-        assert_eq!(calculate_operation("x", a, b)?, a * b);
-        assert_eq!(calculate_operation("×", a, b)?, a * b);
-        assert_eq!(calculate_operation("/", a, b)?, a / b);
-        assert_eq!(calculate_operation("÷", a, b)?, a / b);
-        assert_eq!(calculate_operation("^", a, b)?, a.powf(b));
+        let a = BigDecimal::from_f64(rng.random::<f64>()).unwrap();
+        let b = BigDecimal::from_f64(rng.random::<f64>()).unwrap();
+        
+        let mut operation = MathOperation::new("+", a.to_string().as_str(), b.to_string().as_str())?;
+        assert_eq!(operation.calculate()?, &a + &b);
+        operation.operator = "-";
+        assert_eq!(operation.calculate()?, &a - &b);
+        operation.operator = "*";
+        assert_eq!(operation.calculate()?, &a * &b);
+        operation.operator = "x";
+        assert_eq!(operation.calculate()?, &a * &b);
+        operation.operator = "×";
+        assert_eq!(operation.calculate()?, &a * &b);
+        operation.operator = "/";
+        assert_eq!(operation.calculate()?, &a / &b);
+        operation.operator = "÷";
+        assert_eq!(operation.calculate()?, &a / &b);
+        // operation.operator = "^";
+        // assert_eq!(operation.calculate()?, a.powf(b));
 
         Ok(())
     }
@@ -406,45 +417,46 @@ mod tests {
     fn test_calculate() -> Result<()> {
         // basic calculations
         let mut expression = MathExpression::new("1+1")?;
-        assert_eq!(expression.calculate()?, 2f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("2")?);
         expression = MathExpression::new("1-1*5")?;
-        assert_eq!(expression.calculate()?, -4f64);
-        // assert_eq!(calculate("1.2x3")?, 3.6);
-        expression = MathExpression::new("6^2/3")?;
-        assert_eq!(expression.calculate()?, 12f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("-4")?);
+        expression = MathExpression::new("1.2x3")?;
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("3.6")?);
+        expression = MathExpression::new("6*6/3")?;
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("12")?);
 
         // big numbers
         expression = MathExpression::new("112/16*1000000000000000000")?;
-        assert_eq!(expression.calculate()?, 7000000000000000000f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("7000000000000000000")?);
 
         /*/ parenthesis
         expression = MathExpression::new("2+(1)")?;
-        assert_eq!(expression.calculate()?, 3f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("3")?);
         expression = MathExpression::new("2*(-1)")?;
-        assert_eq!(expression.calculate()?, -2f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("-2")?);
         expression = MathExpression::new("2/(-1)")?;
-        assert_eq!(expression.calculate()?, -2f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("-2")?);
         expression = MathExpression::new("12,4*(3+2)+5")?;
-        assert_eq!(expression.calculate()?, 67f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("67")?);
         expression = MathExpression::new("12,4*(3+2)+5/(6-1)+3")?;
-        assert_eq!(expression.calculate()?, 66f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("66")?);
         expression = MathExpression::new("12,4*(2-3)+5")?;
-        assert_eq!(expression.calculate()?, -7.4f64);
-        // assert_eq!(calculate("12,4*(2/(3-1)-3)+5")?, -7.4f64); */
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("-7.4")?);
+        // assert_eq!(calculate("12,4*(2/(3-1)-3)+5")?, BigDecimal::from_str("-7.4")?); */
 
         // multiple operators
         expression = MathExpression::new("12,4-+0,4")?;
-        assert_eq!(expression.calculate()?, 12f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("12")?);
         expression = MathExpression::new("12,4++0,4")?;
-        assert_eq!(expression.calculate()?, 12.8f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("12.8")?);
         expression = MathExpression::new("12,4--0,4")?;
-        assert_eq!(expression.calculate()?, 12.8f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("12.8")?);
         expression = MathExpression::new("12,4+-0,4")?;
-        assert_eq!(expression.calculate()?, 12f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("12")?);
         expression = MathExpression::new("12,4*-0,5")?;
-        assert_eq!(expression.calculate()?, -6.2f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("-6.2")?);
         expression = MathExpression::new("12,4/-0,5")?;
-        assert_eq!(expression.calculate()?, -24.8f64);
+        assert_eq!(expression.calculate()?, BigDecimal::from_str("-24.8")?);
 
         Ok(())
     }
