@@ -20,9 +20,9 @@ fn main() -> Result<()>{
             print!("\t> ");
             stdout().flush()?;
             stdin().read_line(&mut input_text)?;
-            MathExpression::new(input_text.trim())?
+            MathExpression::new(input_text.trim())
         }
-        Some(string) => MathExpression::new(&string)?
+        Some(string) => MathExpression::new(&string)
     };
 
     let result = expression.calculate()?;
