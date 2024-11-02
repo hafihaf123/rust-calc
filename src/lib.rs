@@ -69,7 +69,7 @@ impl MathExpression {
 				if vec.len() != 1 {
 					return Err(anyhow!("MathExpression operation performing error"));
 				}
-				Ok(vec.first().unwrap().parse()?)
+				Ok(BigRational::from_dec_str(vec.first().unwrap())?)
 			}
 			None => Err(anyhow!("MathExpression operation performed an empty result"))
 		}
@@ -163,7 +163,7 @@ impl MathExpression {
 	/// let mut expression = MathExpression::new("3 + 5.2 * 2 - 8 / 2 + 9")?;
 	/// expression.parse()?;
 	/// expression.perform_operations()?;
-	/// assert_eq!(expression.parsed_expression.unwrap(), vec!["92/5"]);
+	/// assert_eq!(expression.parsed_expression.unwrap(), vec!["18.4"]);
 	/// # anyhow::Ok(())
 	/// ```
 	pub fn perform_operations(&mut self) -> Result<()> {
