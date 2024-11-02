@@ -2,6 +2,7 @@ use std::io::{stdin, stdout, Write};
 use clap::Parser;
 use anyhow::Result;
 use rust_calc::MathExpression;
+use big_rational_str::BigRationalExt;
 
 #[derive(Parser)]
 #[command(name = "calc")]
@@ -26,7 +27,7 @@ fn main() -> Result<()>{
     };
 
     let result = expression.calculate()?;
-    println!("{}", result);
+    println!("{}", result.to_dec_string());
 
     Ok(())
 }

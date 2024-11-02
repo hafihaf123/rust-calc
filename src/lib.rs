@@ -2,7 +2,6 @@ use anyhow::{anyhow, Result};
 use big_rational_str::BigRationalExt;
 use num::{BigRational, One, Signed, ToPrimitive, Zero};
 use std::collections::BTreeMap;
-use std::str::FromStr;
 
 pub struct MathExpression {
 	/// Supported non-number characters used for splitting the expression
@@ -187,7 +186,7 @@ impl MathExpression {
 
 				let partial_result = operation.calculate()?;
 
-				vec[i] = partial_result.to_string();
+				vec[i] = partial_result.to_dec_string();
 				vec.remove(i + 1);
 				vec.remove(i - 1);
 			}
@@ -297,14 +296,8 @@ pub struct MathOperation<'a> {
 
 impl MathOperation<'_> {
 	pub fn new<'a>(operator: &'a str, operand1: &str, operand2: &str) -> Result<MathOperation<'a>> {
-		let operand1_big_rational = match BigRational::from_str(operand1) {
-			Ok(big_rational) => big_rational,
-			Err(_) => BigRational::from_dec_str(operand1)?
-		};
-		let operand2_big_rational = match BigRational::from_str(operand2) {
-			Ok(big_rational) => big_rational,
-			Err(_) => BigRational::from_dec_str(operand2)?
-		};
+		let operand1_big_rational = BigRational::from_dec_str(operand1)?;
+		let operand2_big_rational = BigRational::from_dec_str(operand2)?;
 		Ok(MathOperation {operator, operand1: operand1_big_rational, operand2: operand2_big_rational})
 	}
 
@@ -394,7 +387,7 @@ mod tests {
 	fn test_calculate_operation() -> Result<()> {
 		let (a, b) = (BigRational::from_float(random::<f64>()).unwrap(), BigRational::from_float(random::<f64>()).unwrap());
 
-		let mut operation = MathOperation::new("+", a.to_string().as_str(), b.to_string().as_str())?;
+		let mut operation = MathOperation::new("+", &a.to_dec_string(), &b.to_dec_string())?;
 		assert_eq!(operation.calculate()?, &a + &b);
 		operation.operator = "-";
 		assert_eq!(operation.calculate()?, &a - &b);
