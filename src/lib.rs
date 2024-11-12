@@ -13,8 +13,28 @@ pub struct MathExpression {
 }
 
 impl MathExpression {
-
-	pub fn new(expression: &str) -> Result<Self> {
+     /// A constructor for the [MathExpression] struct. It will automatically fill out the correct operators
+     ///
+     /// # Arguments
+     ///
+     /// * `expression`: the expression to save into the MathExpression
+     ///
+     /// # Returns
+     ///
+     /// `MathExpression`
+     /// - a constructed struct
+     /// - it has the operators fields pre-filled
+     /// - the field parsed_expression is None
+     ///
+     /// # Examples
+     ///
+     /// ```
+     /// use rust_calc::MathExpression;
+     /// let expression_str = "4 + 5 * 8-2";
+     /// let expression = MathExpression::new(expression_str);
+     /// assert_eq!(expression.expression, expression_str);
+     /// ```
+	pub fn new(expression: &str) -> Self {
 		let all_operators = vec!['+', '-', '*', 'x', '×', '/', '÷', '^', '(', ')'];
 
 		let mut operators_by_priority = BTreeMap::new();
@@ -25,21 +45,17 @@ impl MathExpression {
 
 		let expression = expression.to_string();
 
-		Ok(MathExpression { all_operators, operators_by_priority, expression, parsed_expression: None })
+		MathExpression { all_operators, operators_by_priority, expression, parsed_expression: None }
 	}
 
-	/// evaluates a string as a mathematical expression, returning the result as a 64-bit float
-	///
-	/// # Arguments
-	///
-	/// - `expression` - a string slice (`&str`) representing a mathematical expression that should be calculated
+	/// evaluates a string as a mathematical expression, returning the result as a BigRational
 	///
 	/// # Returns
 	///
-	/// this function returns an `anyhow::Result<f64>`
-	/// - `Ok(f64)`
+	/// `anyhow::Result<BigDecimal>`
+	/// - `Ok(BigDecimal)`
 	///     - when the expression is valid and can be evaluated
-	///     - wrapped inside is a 64-bit floating integer representing the result of the expression
+	///     - wrapped inside is a BigRational representing the result of the expression
 	///
 	/// # Errors
 	///
@@ -50,10 +66,10 @@ impl MathExpression {
 	/// # Examples
 	///
 	/// ```
-	/// use big_rational_str::BigRationalExt;
-	/// use num::BigRational;
+	/// # use big_rational_str::BigRationalExt;
+	/// # use num::BigRational;
 	/// use rust_calc::MathExpression;
-	/// let mut expression = MathExpression::new("3 + 5 * 1")?;
+	/// let mut expression = MathExpression::new("3 + 5 * 1");
 	/// let result = expression.calculate()?;
 	/// assert_eq!(result, BigRational::from_dec_str("8.0")?);
 	/// # anyhow::Ok(())
@@ -75,15 +91,11 @@ impl MathExpression {
 		}
 	}
 
-	/// parses a string representing a mathematical expression into a `Vec<String>`, splitting the expression on [OPERATORS], keeping them in the vector
-	///
-	/// # Arguments
-	///
-	/// - `expression` - a string slice (`&str`) representing a mathematical expression
+	/// parses a string representing a mathematical expression into a `Vec<String>`, splitting the expression on its operators, keeping them in the vector
 	///
 	/// # Returns
 	///
-	/// the function returns an `anyhow::Result<Vec<String>>`
+	/// `anyhow::Result<Vec<String>>`
 	/// - `Ok(Vec<String>)`
 	///     - when the expression has a valid format for parsing
 	///     - wrapped inside is a vector containing the individual parts of the expression (*terms* and *operators*) in the correct order
@@ -98,7 +110,7 @@ impl MathExpression {
 	///
 	/// ```
 	/// use rust_calc::MathExpression;
-	/// let mut expression = MathExpression::new("3 + 5,2 * 2 - 1")?;
+	/// let mut expression = MathExpression::new("3 + 5,2 * 2 - 1");
 	/// expression.parse()?;
 	/// assert_eq!(expression.parsed_expression.unwrap(), vec!["3", "+", "5.2", "*", "2", "-", "1"]);
 	/// # anyhow::Ok(())
@@ -138,29 +150,24 @@ impl MathExpression {
 
 	/// performs the desired operations on a [parsed](parse) expression, changing the corresponding vector
 	///
-	/// # Arguments
-	///
-	/// - `vec` - a mutable pointer to a vector of strings (`&mut Vec<String>`) representing a [parsed](parse) expression
-	/// - `operators` - a pointer to a character array (`&[char]`) containing the operators, by which the operations are performed
-	///
 	/// # Returns
 	///
-	/// the function returns an `anyhow::Result<()>`
+	/// `anyhow::Result<()>`
 	/// - `Ok(())`
 	///     - when performing the operations was successful
-	///     - it does not contain a value, but it means the `vec` argument has been successfully modified
+	///     - it does not contain a value, but it means the [MathExpression] has been successfully modified
 	///
 	/// # Errors
 	///
 	/// the function may return an error in the following scenarios:
-	/// - there is not a valid `f64` around an operator from `operators`
-	/// - the [calculate_operation] function failed
+	/// - parsing the operations into [MathOperation] failed
+	/// - the [MathOperation::calculate] function failed
 	///
 	/// # Example
 	///
 	/// ```
 	/// use rust_calc::MathExpression;
-	/// let mut expression = MathExpression::new("3 + 5.2 * 2 - 8 / 2 + 9")?;
+	/// let mut expression = MathExpression::new("3 + 5.2 * 2 - 8 / 2 + 9");
 	/// expression.parse()?;
 	/// expression.perform_operations()?;
 	/// assert_eq!(expression.parsed_expression.unwrap(), vec!["18.4"]);
@@ -301,20 +308,14 @@ impl MathOperation<'_> {
 		Ok(MathOperation {operator, operand1: operand1_big_rational, operand2: operand2_big_rational})
 	}
 
-	/// calculates an operation based on an operator and two 64-bit floats, returning a 64-bit float representing the result of the operation
-	///
-	/// # Arguments
-	///
-	/// - `operator` - a string slice (`&str`) representing an operator for the desired operation
-	/// - `a` - a 64-bit float (`f64`) representing the left side of the operation
-	/// - `b` - a 64-bit float (`f64`) representing the right side of the operation
+	/// calculates an operation, returning a BigRational representing the result of the operation
 	///
 	/// # Returns
 	///
-	/// the function returns an `anyhow::Result<f64>`
+	/// `anyhow::Result<f64>`
 	/// - `Ok(f64)`
 	///     - when the operation was successful
-	///     - wrapped inside is a 64-bit float (`f64`) representing the result of the operation `<a> <operator> <b>`
+	///     - wrapped inside is a BigRational representing the result of the operation
 	///
 	/// # Errors
 	///
@@ -409,24 +410,24 @@ mod tests {
 
 	#[test]
 	fn test_parse() -> Result<()> {
-		let mut expression = MathExpression::new("1+1")?;
+		let mut expression = MathExpression::new("1+1");
 		expression.parse()?;
 		assert_eq!(expression.parsed_expression.unwrap(), vec!["1", "+", "1"]);
 
 
-		expression = MathExpression::new("1-1*5")?;
+		expression = MathExpression::new("1-1*5");
 		expression.parse()?;
 		assert_eq!(expression.parsed_expression.unwrap(), vec!["1", "-", "1", "*", "5"]);
 
-		expression = MathExpression::new("1.2x3")?;
+		expression = MathExpression::new("1.2x\n3\n");
 		expression.parse()?;
 		assert_eq!(expression.parsed_expression.unwrap(), vec!["1.2", "x", "3"]);
 
-		expression = MathExpression::new("1,2×5^2")?;
+		expression = MathExpression::new("1,2 ×5^ 2");
 		expression.parse()?;
 		assert_eq!(expression.parsed_expression.unwrap(), vec!["1.2", "×", "5", "^", "2"]);
 
-		expression = MathExpression::new("112/13÷10000000000000000000")?;
+		expression = MathExpression::new("112/13÷10000000000000000000           ");
 		expression.parse()?;
 		assert_eq!(expression.parsed_expression.unwrap(), vec!["112", "/", "13", "÷", "10000000000000000000"]);
 
@@ -437,46 +438,46 @@ mod tests {
 	#[test]
 	fn test_calculate() -> Result<()> {
 		// basic calculations
-		let mut expression = MathExpression::new("1+1")?;
+		let mut expression = MathExpression::new("1+1");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("2")?);
-		expression = MathExpression::new("1-1*5")?;
+		expression = MathExpression::new("1-1*5");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("-4")?);
-		// expression = MathExpression::new("1.2x3")?;
-		// assert_eq!(expression.calculate()?, BigRational::from_dec_str("3.6")?);
-		expression = MathExpression::new("6*6/3")?;
+		expression = MathExpression::new("1.2x3");
+		assert_eq!(expression.calculate()?, BigRational::from_dec_str("3.6")?);
+		expression = MathExpression::new("6*6/3");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("12")?);
 
 		// big numbers
-		expression = MathExpression::new("112/16*1000000000000000000")?;
+		expression = MathExpression::new("112/16*1000000000000000000");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("7000000000000000000")?);
 
 		/*/ parenthesis
-		expression = MathExpression::new("2+(1)")?;
+		expression = MathExpression::new("2+(1)");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("3")?);
-		expression = MathExpression::new("2*(-1)")?;
+		expression = MathExpression::new("2*(-1)");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("-2")?);
-		expression = MathExpression::new("2/(-1)")?;
+		expression = MathExpression::new("2/(-1)");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("-2")?);
-		expression = MathExpression::new("12,4*(3+2)+5")?;
+		expression = MathExpression::new("12,4*(3+2)+5");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("67")?);
-		expression = MathExpression::new("12,4*(3+2)+5/(6-1)+3")?;
+		expression = MathExpression::new("12,4*(3+2)+5/(6-1)+3");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("66")?);
-		expression = MathExpression::new("12,4*(2-3)+5")?;
+		expression = MathExpression::new("12,4*(2-3)+5");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("-7.4")?);
 		// assert_eq!(calculate(BigRational::from_dec_str("12,4*(2/(3-1)-3)+5")?, "-7.4")?); */
 
 		// multiple operators
-		expression = MathExpression::new("12,4-+0,4")?;
+		expression = MathExpression::new("12,4-+0,4");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("12")?);
-		expression = MathExpression::new("12,4++0,4")?;
+		expression = MathExpression::new("12,4++0,4");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("12.8")?);
-		expression = MathExpression::new("12,4--0,4")?;
+		expression = MathExpression::new("12,4--0,4");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("12.8")?);
-		expression = MathExpression::new("12,4+-0,4")?;
+		expression = MathExpression::new("12,4+-0,4");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("12")?);
-		expression = MathExpression::new("12,4*-0,5")?;
+		expression = MathExpression::new("12,4*-0,5");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("-6.2")?);
-		expression = MathExpression::new("12,4/-0,5")?;
+		expression = MathExpression::new("12,4/-0,5");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("-24.8")?);
 
 		Ok(())
