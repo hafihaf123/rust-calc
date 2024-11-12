@@ -2,6 +2,7 @@ use anyhow::{anyhow, Result};
 use big_rational_str::BigRationalExt;
 use num::{BigRational, One, Signed, ToPrimitive, Zero};
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
 pub struct MathExpression {
 	/// Supported non-number characters used for splitting the expression
@@ -48,12 +49,12 @@ impl MathExpression {
 		MathExpression { all_operators, operators_by_priority, expression, parsed_expression: None }
 	}
 
-	/// evaluates a string as a mathematical expression, returning the result as a BigRational
+	/// evaluates the expression of a [MathExpression], returning the result as a BigRational
 	///
 	/// # Returns
 	///
-	/// `anyhow::Result<BigDecimal>`
-	/// - `Ok(BigDecimal)`
+	/// `anyhow::Result<BigRational>`
+	/// - `Ok(BigRational)`
 	///     - when the expression is valid and can be evaluated
 	///     - wrapped inside is a BigRational representing the result of the expression
 	///
@@ -124,7 +125,7 @@ impl MathExpression {
 		self.expression = binding.trim().to_string();
 
 		let mut result = match self.parsed_expression {
-			Some(_) => return Err(anyhow!("Expression already parsed")),
+			Some(_) => return Err(anyhow!("Expression already parsed")), // TODO - fix this to clear the parsed_expression, but continue
 			None => Vec::new()
 		};
 
@@ -148,7 +149,7 @@ impl MathExpression {
 		Ok(())
 	}
 
-	/// performs the desired operations on a [parsed](parse) expression, changing the corresponding vector
+	/// performs the desired operations on a [parsed](parse) expression, changing the parsed_expression field
 	///
 	/// # Returns
 	///
@@ -302,18 +303,47 @@ pub struct MathOperation<'a> {
 }
 
 impl MathOperation<'_> {
+	 /// Creates a new instance of the [MathOperation] struct, taking in the operator and operands as string slices
+	 ///
+	 /// # Arguments
+	 ///
+	 /// * `operator`: a string slice representing the operator
+	 /// * `operand1`: the first operand
+	 /// * `operand2`: the second operand
+	 ///
+	 /// # Returns
+	 ///
+	 /// `anyhow::Result<MathOperation>`
+	 /// - `Ok(MathOperation)`
+	 /// 	- when the instance has been properly created
+	 /// 	- inside is wrapped the created instance
+	 ///
+	 /// # Errors
+	 ///
+	 /// - the function may return an error in the following scenarios:
+	 /// 	- parsing the operands from text to the `BigRational` type fails
+	 ///
+	 /// # Examples
+	 ///
+	 /// ```
+	 /// # use big_rational_str::BigRationalExt;
+	 /// # use num::BigRational;
+	 /// use rust_calc::MathOperation;
+	 /// let operation = MathOperation::new("+", "8.5", "6")?;
+	 /// assert_eq!(operation.calculate()?, BigRational::from_dec_str("14.5")?);
+	 /// ```
 	pub fn new<'a>(operator: &'a str, operand1: &str, operand2: &str) -> Result<MathOperation<'a>> {
 		let operand1_big_rational = BigRational::from_dec_str(operand1)?;
 		let operand2_big_rational = BigRational::from_dec_str(operand2)?;
 		Ok(MathOperation {operator, operand1: operand1_big_rational, operand2: operand2_big_rational})
 	}
 
-	/// calculates an operation, returning a BigRational representing the result of the operation
+	/// calculates an operation, returning a `BigRational` representing the result of the operation
 	///
 	/// # Returns
 	///
-	/// `anyhow::Result<f64>`
-	/// - `Ok(f64)`
+	/// `anyhow::Result<BigRational>`
+	/// - `Ok(BigRational)`
 	///     - when the operation was successful
 	///     - wrapped inside is a BigRational representing the result of the operation
 	///
@@ -350,6 +380,36 @@ impl MathOperation<'_> {
 		})
 	}
 
+	 /// a function implementing exponentiation for `BigRational` base and exponent
+	 ///
+	 /// # Arguments
+	 ///
+	 /// * `base`: a `BigRational` representing the base for the exponentiation
+	 /// * `exponent`: a `BigRational` representing the exponent for the exponentiation
+	 ///
+	 /// # Returns
+	 ///
+	 /// `anyhow::Result<BigRational>`
+	 /// - `Ok(BigRational)`
+	 /// 	- when the exponentiation was successful
+	 /// 	- inside is wrapped a `BigRational` representing the result of base to the power of exponent
+	 ///
+	 /// # Errors
+	 ///
+	 /// - the function may return an error in the following scenarios:
+	 /// 	- the operation is invalid
+	 /// 		- 0^0
+	 /// 		- 0^(-x);
+	 /// 	- parsing the exponent numer or denominator to an (unsigned) integer failed
+	 ///
+	 /// # Examples
+	 ///
+	 /// ```
+	 /// # use num::{BigRational, FromPrimitive};
+	 /// use rust_calc::MathOperation;
+	 /// let operation = MathOperation::new("^", "2", "3")?;
+	 /// assert_eq!(operation.calculate()?, BigRational::from_i32(8).unwrap());
+	 /// ```
 	fn pow(base: &BigRational, exponent: &BigRational) -> Result<BigRational> {
 		if exponent.is_zero() {
 			if base.is_zero() {
