@@ -2,7 +2,6 @@ use anyhow::{anyhow, Result};
 use big_rational_str::BigRationalExt;
 use num::{BigRational, One, Signed, ToPrimitive, Zero};
 use std::collections::BTreeMap;
-use std::str::FromStr;
 
 pub struct MathExpression {
 	/// Supported non-number characters used for splitting the expression
@@ -331,6 +330,7 @@ impl MathOperation<'_> {
 	 /// use rust_calc::MathOperation;
 	 /// let operation = MathOperation::new("+", "8.5", "6")?;
 	 /// assert_eq!(operation.calculate()?, BigRational::from_dec_str("14.5")?);
+	 /// # anyhow::Ok(())
 	 /// ```
 	pub fn new<'a>(operator: &'a str, operand1: &str, operand2: &str) -> Result<MathOperation<'a>> {
 		let operand1_big_rational = BigRational::from_dec_str(operand1)?;
@@ -409,6 +409,7 @@ impl MathOperation<'_> {
 	 /// use rust_calc::MathOperation;
 	 /// let operation = MathOperation::new("^", "2", "3")?;
 	 /// assert_eq!(operation.calculate()?, BigRational::from_i32(8).unwrap());
+	 /// # anyhow::Ok(())
 	 /// ```
 	fn pow(base: &BigRational, exponent: &BigRational) -> Result<BigRational> {
 		if exponent.is_zero() {
