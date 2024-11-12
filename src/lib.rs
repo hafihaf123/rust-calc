@@ -1,7 +1,8 @@
 use anyhow::{anyhow, Result};
 use big_rational_str::BigRationalExt;
-use num::{BigRational, One, Signed, ToPrimitive, Zero};
+use num::{BigInt, BigRational, FromPrimitive, One, Signed, ToPrimitive, Zero};
 use std::collections::BTreeMap;
+use std::ops::Div;
 
 pub struct MathExpression {
 	/// Supported non-number characters used for splitting the expression
@@ -104,7 +105,7 @@ impl MathExpression {
 	///
 	/// the function may return an error in the following scenarios:
 	/// - the expression does not have a valid format because of:
-	///     - [consecutive operators](handle_consecutive_operators)
+	///     - handle_consecutive_operators
 	///
 	/// # Example
 	///
@@ -123,10 +124,7 @@ impl MathExpression {
 		let binding = self.expression.replace(",", ".");
 		self.expression = binding.trim().to_string();
 
-		let mut result = match self.parsed_expression {
-			Some(_) => return Err(anyhow!("Expression already parsed")), // TODO - fix this to clear the parsed_expression, but continue
-			None => Vec::new()
-		};
+		let mut result = Vec::new();
 
 		let mut last = 0;
 
@@ -148,7 +146,7 @@ impl MathExpression {
 		Ok(())
 	}
 
-	/// performs the desired operations on a [parsed](parse) expression, changing the parsed_expression field
+	/// performs all defined operations on a [parsed](MathExpression::parse) expression, changing the parsed_expression field
 	///
 	/// # Returns
 	///
@@ -429,14 +427,41 @@ impl MathOperation<'_> {
 			Some(exponent_numer) => base.pow(exponent_numer),
 			None => return Err(anyhow!("Failed to parse the exponent numer into an integer")),
 		};
-		match exponent.denom().to_u32() {
-			Some(denom) => {
-				let res_num = integer_power.numer().nth_root(denom);
-				let res_den = integer_power.denom().nth_root(denom);
-				Ok(BigRational::new(res_num, res_den))
-			}
-			None => Err(anyhow!("Converting the exponent denominator to an unsigned integer failed"))
+
+	 	let tolerance = BigRational::new(BigInt::one(), BigInt::from(10).pow(15u32));
+		let res = MathOperation::nth_root(&integer_power, exponent.denom(), &tolerance)?;
+		Ok(res)
+	}
+
+	fn nth_root(value: &BigRational, root: &BigInt, tolerance: &BigRational) -> Result<BigRational> {
+		if root.is_zero() || root.is_negative() || value.is_zero() || value.is_negative() {
+			return Err(anyhow!("Invalid operation: {}-th root of {} is undefined", root, value));
 		}
+
+		let root_int = match root.to_i32() {
+			Some(root_int) => root_int,
+			None => return Err(anyhow!("Failed to parse the root into an integer")),
+		};
+
+		let mut x = BigRational::from_f64(value.to_f64().unwrap().powf(1.0 / root.to_f64().unwrap())).unwrap();
+
+		let root_minus_one = root_int - 1;
+
+		loop {
+			let x_next = BigRational::new(BigInt::one(), root.clone()) * (BigRational::from_integer(root - BigInt::one())*&x + value / x.pow(root_minus_one));
+			if (&x_next - &x).abs() < *tolerance {
+				break;
+			}
+			x = x_next;
+		}
+
+		let result_integer_approximation = BigRational::from(x.numer().div(x.denom()));
+
+		if (&x - &result_integer_approximation).abs() < *tolerance {
+			return Ok(result_integer_approximation);
+		}
+
+		Ok(x)
 	}
 }
 
@@ -444,6 +469,7 @@ impl MathOperation<'_> {
 mod tests {
 	use super::*;
 	use rand::random;
+	use std::str::FromStr;
 
 	#[test]
 	fn test_calculate_operation() -> Result<()> {
@@ -540,6 +566,22 @@ mod tests {
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("-6.2")?);
 		expression = MathExpression::new("12,4/-0,5");
 		assert_eq!(expression.calculate()?, BigRational::from_dec_str("-24.8")?);
+
+		Ok(())
+	}
+
+	#[test]
+	fn test_nth_root() -> Result<()> {
+		let tolerance = BigRational::new(BigInt::one(), BigInt::from(10).pow(20u32));
+
+		let (mut a, mut b) = (BigRational::from_str("4")?, BigInt::from_str("2")?);
+		assert_eq!(MathOperation::nth_root(&a, &b, &tolerance)?, BigRational::from_dec_str("2")?);
+
+		(a, b) = (BigRational::from_str("256")?, BigInt::from_str("4")?);
+		assert_eq!(MathOperation::nth_root(&a, &b, &tolerance)?, BigRational::from_dec_str("4")?);
+
+		(a, b) = (BigRational::from_str("2")?, BigInt::from_str("2")?);
+		assert!((MathOperation::nth_root(&a, &b, &tolerance)? - BigRational::from_dec_str("1.414213562373095048801688724209")?).abs() < tolerance);
 
 		Ok(())
 	}
