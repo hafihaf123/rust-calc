@@ -1,9 +1,4 @@
 #![allow(dead_code)]
 
-mod error;
-mod lexer;
-mod token;
-
-pub fn do_smth() {
-    unimplemented!()
-}
+pub mod lexer;
+pub mod parser;
