@@ -1,15 +1,20 @@
 use std::io::{Write, stdin, stdout};
 
-use rust_calc::lexer::Lexer;
+use rust_calc::parser::Parser;
 
 fn main() {
     let mut input = String::new();
-    print!("lexer> ");
+    print!("parser> ");
     stdout().flush().unwrap();
     stdin().read_line(&mut input).expect("Wrong input");
 
-    let lexer = Lexer::new(&input);
-    for token in lexer.map(|res| res.unwrap()) {
-        dbg!(token);
+    let mut parser = Parser::new(&input);
+    match parser.parse_program() {
+        Err(e) => {
+            dbg!(e);
+        }
+        Ok(statements) => statements.iter().for_each(|statement| {
+            dbg!(statement);
+        }),
     }
 }

@@ -1,11 +1,16 @@
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
+pub enum Associativity {
+    Left,
+    Right,
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Operator {
     Plus,
     Minus,
     Star,
     Slash,
     Caret,
-    Assignment,
 }
 
 impl Operator {
@@ -16,17 +21,34 @@ impl Operator {
             '*' => Some(Self::Star),
             '/' => Some(Self::Slash),
             '^' => Some(Self::Caret),
-            '=' => Some(Self::Assignment),
             _ => None,
+        }
+    }
+
+    pub fn priority(&self) -> u8 {
+        match self {
+            Operator::Plus => 1,
+            Operator::Minus => 1,
+            Operator::Star => 2,
+            Operator::Slash => 2,
+            Operator::Caret => 3,
+        }
+    }
+
+    pub fn associativity(&self) -> Associativity {
+        match self {
+            Operator::Caret => Associativity::Right,
+            _ => Associativity::Left,
         }
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Punctuation {
     LeftParenthesis,
     RightParenthesis,
     Semicolon,
+    Assignment,
 }
 
 impl Punctuation {
@@ -35,6 +57,7 @@ impl Punctuation {
             '(' => Some(Self::LeftParenthesis),
             ')' => Some(Self::RightParenthesis),
             ';' => Some(Self::Semicolon),
+            '=' => Some(Self::Assignment),
             _ => None,
         }
     }

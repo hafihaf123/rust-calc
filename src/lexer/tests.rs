@@ -44,25 +44,25 @@ lexer_test!(
 // Operators
 lexer_test!(
     operators,
-    "+ - * / ^ =",
+    "+ - * / ^",
     [
         Ok(Token::Operator(Operator::Plus)),
         Ok(Token::Operator(Operator::Minus)),
         Ok(Token::Operator(Operator::Star)),
         Ok(Token::Operator(Operator::Slash)),
         Ok(Token::Operator(Operator::Caret)),
-        Ok(Token::Operator(Operator::Assignment))
     ]
 );
 
 // Punctuation
 lexer_test!(
     punctuation,
-    "( );",
+    "( );  =",
     [
         Ok(Token::Punctuation(Punctuation::LeftParenthesis)),
         Ok(Token::Punctuation(Punctuation::RightParenthesis)),
-        Ok(Token::Punctuation(Punctuation::Semicolon))
+        Ok(Token::Punctuation(Punctuation::Semicolon)),
+        Ok(Token::Punctuation(Punctuation::Assignment))
     ]
 );
 
@@ -85,7 +85,7 @@ lexer_test!(
     "x = 3 + 4.5 * (y - 2);",
     [
         Ok(Token::Identifier(Identifier::Variable("x".into()))),
-        Ok(Token::Operator(Operator::Assignment)),
+        Ok(Token::Punctuation(Punctuation::Assignment)),
         Ok(Token::Number(3.0)),
         Ok(Token::Operator(Operator::Plus)),
         Ok(Token::Number(4.5)),
