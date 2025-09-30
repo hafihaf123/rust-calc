@@ -64,14 +64,9 @@ impl Punctuation {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Identifier {
-    Variable(String),
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub enum Token {
     Number(f64),
-    Identifier(Identifier),
+    Identifier(String),
     Operator(Operator),
     Punctuation(Punctuation),
     Eof,

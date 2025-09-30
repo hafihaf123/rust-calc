@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::str::Chars;
 
-use crate::lexer::token::{Identifier, Operator, Punctuation};
+use crate::lexer::token::{Operator, Punctuation};
 
 use super::error::LexerError;
 use super::token::Token;
@@ -161,9 +161,6 @@ impl<'a> LexerFSM<'a, InIdentifier> {
             self.ctx.buffer.push(c);
             self.ctx.advance();
         }
-        (
-            Token::Identifier(Identifier::Variable(self.ctx.buffer.clone())),
-            self,
-        )
+        (Token::Identifier(self.ctx.buffer.clone()), self)
     }
 }

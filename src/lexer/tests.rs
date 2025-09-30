@@ -1,6 +1,6 @@
 use crate::lexer::{
     error::LexerError,
-    token::{Identifier, Operator, Punctuation, Token},
+    token::{Operator, Punctuation, Token},
 };
 
 /// Macro to generate lexer tests
@@ -71,11 +71,9 @@ lexer_test!(
     identifiers,
     "x y1 variable_name",
     [
-        Ok(Token::Identifier(Identifier::Variable("x".into()))),
-        Ok(Token::Identifier(Identifier::Variable("y1".into()))),
-        Ok(Token::Identifier(Identifier::Variable(
-            "variable_name".into()
-        )))
+        Ok(Token::Identifier("x".into())),
+        Ok(Token::Identifier("y1".into())),
+        Ok(Token::Identifier("variable_name".into()))
     ]
 );
 
@@ -84,14 +82,14 @@ lexer_test!(
     mixed_expression,
     "x = 3 + 4.5 * (y - 2);",
     [
-        Ok(Token::Identifier(Identifier::Variable("x".into()))),
+        Ok(Token::Identifier("x".into())),
         Ok(Token::Punctuation(Punctuation::Assignment)),
         Ok(Token::Number(3.0)),
         Ok(Token::Operator(Operator::Plus)),
         Ok(Token::Number(4.5)),
         Ok(Token::Operator(Operator::Star)),
         Ok(Token::Punctuation(Punctuation::LeftParenthesis)),
-        Ok(Token::Identifier(Identifier::Variable("y".into()))),
+        Ok(Token::Identifier("y".into())),
         Ok(Token::Operator(Operator::Minus)),
         Ok(Token::Number(2.0)),
         Ok(Token::Punctuation(Punctuation::RightParenthesis)),

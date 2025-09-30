@@ -1,6 +1,6 @@
 use crate::{lexer::token::Operator, parser::error::ParserError};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     Number(f64),
     Variable(String),
@@ -9,7 +9,7 @@ pub enum Expression {
     Call(String, Box<Expression>),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnaryOp {
     Negative,
     Positive,
@@ -28,7 +28,7 @@ impl TryFrom<Operator> for UnaryOp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     Assignment(String, Expression),
     Expression(Expression),

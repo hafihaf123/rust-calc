@@ -1,12 +1,13 @@
-use std::iter::Peekable;
+mod ast;
+pub mod error;
+pub mod tests;
 
-use crate::lexer::token::{Associativity, Identifier, Operator, Punctuation};
+use crate::lexer::token::{Associativity, Operator, Punctuation};
 use crate::lexer::{Lexer, token::Token};
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::error::ParserError;
 
-mod ast;
-mod error;
+use std::iter::Peekable;
 
 pub struct Parser<'a> {
     lexer: Peekable<Lexer<'a>>,
@@ -33,7 +34,7 @@ impl<'a> Parser<'a> {
         self.lexer
             .next()
             .ok_or(ParserError::UnexpectedEnd)?
-            .map_err(ParserError::LexerError)
+            .map_err(Into::into)
     }
 
     fn expect(&mut self, token: &Token) -> Result<(), ParserError> {
@@ -49,7 +50,9 @@ impl<'a> Parser<'a> {
         let mut statements = Vec::new();
         while self.peek()?.is_some() {
             let statement = self.parse_statement()?;
-            self.expect(&Token::Punctuation(Punctuation::Semicolon))?;
+            if statement != Statement::Empty {
+                self.expect(&Token::Punctuation(Punctuation::Semicolon))?;
+            }
             statements.push(statement);
         }
         Ok(statements)
@@ -57,7 +60,7 @@ impl<'a> Parser<'a> {
 
     fn parse_statement(&mut self) -> Result<Statement, ParserError> {
         match self.advance()? {
-            Token::Identifier(Identifier::Variable(var))
+            Token::Identifier(var)
                 if matches!(
                     self.peek()?,
                     Some(&Token::Punctuation(Punctuation::Assignment))
@@ -104,6 +107,7 @@ impl<'a> Parser<'a> {
                         Expression::Binary(Box::new(primary), operator, Box::new(after_operator));
                 }
                 Some(&Token::Punctuation(Punctuation::Semicolon)) => break,
+                Some(&Token::Punctuation(Punctuation::RightParenthesis)) => break,
                 None => break,
                 Some(token) => return Err(ParserError::UnexpectedToken(token.clone())),
             }
@@ -114,7 +118,14 @@ impl<'a> Parser<'a> {
     fn parse_primary(&mut self, first: Token) -> Result<Expression, ParserError> {
         match first {
             Token::Number(num) => Ok(Expression::Number(num)),
-            Token::Identifier(Identifier::Variable(var_name)) => Ok(Expression::Variable(var_name)),
+            Token::Identifier(var_name) => match self.peek()? {
+                Some(&Token::Punctuation(Punctuation::LeftParenthesis)) => {
+                    let left_parenthesis = self.advance()?;
+                    let argument = self.parse_primary(left_parenthesis)?;
+                    Ok(Expression::Call(var_name, Box::new(argument)))
+                }
+                _ => Ok(Expression::Variable(var_name)),
+            },
             Token::Punctuation(Punctuation::LeftParenthesis) => {
                 let next_token = self.advance()?;
                 let result = self.parse_expression(next_token, 0)?;
