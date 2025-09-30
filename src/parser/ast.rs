@@ -1,36 +1,39 @@
-use crate::{lexer::token::Operator, parser::error::ParserError};
+use std::marker::PhantomData;
+
+use crate::{lexer::token::Operator, numeric::Numeric, parser::error::ParserError};
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expression {
-    Number(f64),
+pub enum Expression<N: Numeric> {
+    Number(N),
     Variable(String),
-    Unary(UnaryOp, Box<Expression>),
-    Binary(Box<Expression>, Operator, Box<Expression>),
-    Call(String, Box<Expression>),
+    Unary(UnaryOp<N>, Box<Expression<N>>),
+    Binary(Box<Expression<N>>, Operator, Box<Expression<N>>),
+    Call(String, Box<Expression<N>>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum UnaryOp {
+pub enum UnaryOp<N: Numeric> {
     Negative,
     Positive,
+    _Marker(PhantomData<N>),
 }
 
-impl TryFrom<Operator> for UnaryOp {
-    type Error = ParserError;
-    fn try_from(value: Operator) -> Result<UnaryOp, ParserError> {
+impl<N: Numeric> TryFrom<Operator> for UnaryOp<N> {
+    type Error = ParserError<N>;
+    fn try_from(value: Operator) -> Result<UnaryOp<N>, ParserError<N>> {
         match value {
             Operator::Plus => Ok(Self::Positive),
             Operator::Minus => Ok(Self::Negative),
             _ => Err(ParserError::UnexpectedToken(
-                crate::lexer::token::Token::Operator(value),
+                crate::lexer::token::Token::<N>::Operator(value),
             )),
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Statement {
-    Assignment(String, Expression),
-    Expression(Expression),
+pub enum Statement<N: Numeric> {
+    Assignment(String, Expression<N>),
+    Expression(Expression<N>),
     Empty,
 }

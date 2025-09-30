@@ -8,7 +8,7 @@ macro_rules! lexer_test {
     ($name:ident, $input:expr, [$($expected:expr),* $(,)?]) => {
         #[test]
         fn $name() {
-            let lexer = crate::lexer::Lexer::new($input);
+            let lexer = crate::lexer::Lexer::<f64>::new($input);
             let tokens: Vec<_> = lexer.collect();
 
             let expected_tokens = vec![

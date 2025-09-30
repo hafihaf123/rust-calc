@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 use std::str::Chars;
 
 use crate::lexer::token::{Operator, Punctuation};
+use crate::numeric::Numeric;
 
 use super::error::LexerError;
 use super::token::Token;
@@ -37,10 +38,10 @@ impl<'a> FSMContext<'a> {
 }
 
 #[derive(Debug)]
-pub struct LexerFSM<'a, State> {
+pub struct LexerFSM<'a, State, N: Numeric> {
     // ctx: &'a mut FSMContext<'a>,
     ctx: FSMContext<'a>,
-    _state: std::marker::PhantomData<State>,
+    _state: std::marker::PhantomData<(State, N)>,
 }
 
 // impl<'a, State> LexerFSM<'a, State> {
@@ -49,9 +50,9 @@ pub struct LexerFSM<'a, State> {
 //     }
 // }
 
-impl<'a, State> LexerFSM<'a, State> {
-    fn into_state<S>(self) -> LexerFSM<'a, S> {
-        LexerFSM::<S> {
+impl<'a, State, N: Numeric> LexerFSM<'a, State, N> {
+    fn into_state<S>(self) -> LexerFSM<'a, S, N> {
+        LexerFSM::<S, N> {
             ctx: self.ctx,
             _state: PhantomData,
         }
@@ -67,7 +68,7 @@ pub struct DecimalPart;
 #[derive(Debug)]
 pub struct InIdentifier;
 
-impl<'a> LexerFSM<'a, Start> {
+impl<'a, N: Numeric> LexerFSM<'a, Start, N> {
     pub fn new(input: &'a str) -> Self {
         Self {
             ctx: FSMContext::new(input),
@@ -75,7 +76,7 @@ impl<'a> LexerFSM<'a, Start> {
         }
     }
 
-    pub fn next_token(mut self) -> Result<(Token, LexerFSM<'a, Start>), LexerError> {
+    pub fn next_token(mut self) -> Result<(Token<N>, LexerFSM<'a, Start, N>), LexerError> {
         while let Some(c) = self.ctx.current_char {
             if c.is_whitespace() {
                 self.ctx.advance();
@@ -105,8 +106,8 @@ impl<'a> LexerFSM<'a, Start> {
     }
 }
 
-impl<'a> LexerFSM<'a, IntegerPart> {
-    pub fn collect(mut self) -> Result<(Token, LexerFSM<'a, IntegerPart>), LexerError> {
+impl<'a, N: Numeric> LexerFSM<'a, IntegerPart, N> {
+    pub fn collect(mut self) -> Result<(Token<N>, LexerFSM<'a, IntegerPart, N>), LexerError> {
         self.ctx.buffer.clear();
         while let Some(c) = self.ctx.current_char {
             if c.is_ascii_digit() {
@@ -125,7 +126,7 @@ impl<'a> LexerFSM<'a, IntegerPart> {
             break;
         }
         Ok((
-            Token::Number(self.ctx.buffer.parse().map_err(|_| {
+            Token::Number(N::from_str(&self.ctx.buffer).map_err(|_| {
                 LexerError::InvalidNumber(self.ctx.buffer.clone(), self.ctx.position)
             })?),
             self,
@@ -133,8 +134,8 @@ impl<'a> LexerFSM<'a, IntegerPart> {
     }
 }
 
-impl<'a> LexerFSM<'a, DecimalPart> {
-    pub fn collect(mut self) -> Result<(Token, LexerFSM<'a, DecimalPart>), LexerError> {
+impl<'a, N: Numeric> LexerFSM<'a, DecimalPart, N> {
+    pub fn collect(mut self) -> Result<(Token<N>, LexerFSM<'a, DecimalPart, N>), LexerError> {
         while let Some(c) = self.ctx.current_char {
             if !c.is_ascii_digit() {
                 break;
@@ -143,7 +144,7 @@ impl<'a> LexerFSM<'a, DecimalPart> {
             self.ctx.advance();
         }
         Ok((
-            Token::Number(self.ctx.buffer.parse().map_err(|_| {
+            Token::Number(N::from_str(&self.ctx.buffer).map_err(|_| {
                 LexerError::InvalidNumber(self.ctx.buffer.clone(), self.ctx.position)
             })?),
             self,
@@ -151,8 +152,8 @@ impl<'a> LexerFSM<'a, DecimalPart> {
     }
 }
 
-impl<'a> LexerFSM<'a, InIdentifier> {
-    pub fn collect(mut self) -> (Token, LexerFSM<'a, InIdentifier>) {
+impl<'a, N: Numeric> LexerFSM<'a, InIdentifier, N> {
+    pub fn collect(mut self) -> (Token<N>, LexerFSM<'a, InIdentifier, N>) {
         self.ctx.buffer.clear();
         while let Some(c) = self.ctx.current_char {
             if !c.is_ascii_alphabetic() && !c.is_ascii_digit() && c != '_' {

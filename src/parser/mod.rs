@@ -4,17 +4,18 @@ pub mod tests;
 
 use crate::lexer::token::{Associativity, Operator, Punctuation};
 use crate::lexer::{Lexer, token::Token};
+use crate::numeric::Numeric;
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::error::ParserError;
 
 use std::iter::Peekable;
 
-pub struct Parser<'a> {
-    lexer: Peekable<Lexer<'a>>,
+pub struct Parser<'a, N: Numeric> {
+    lexer: Peekable<Lexer<'a, N>>,
     // current: Option<Token>,
 }
 
-impl<'a> Parser<'a> {
+impl<'a, N: Numeric> Parser<'a, N> {
     pub fn new(input: &'a str) -> Self {
         Self {
             lexer: Lexer::new(input).peekable(),
@@ -22,7 +23,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn peek(&mut self) -> Result<Option<&Token>, ParserError> {
+    fn peek(&mut self) -> Result<Option<&Token<N>>, ParserError<N>> {
         self.lexer
             .peek()
             .map(Result::as_ref)
@@ -30,14 +31,14 @@ impl<'a> Parser<'a> {
             .map_err(|e| e.clone().into())
     }
 
-    fn advance(&mut self) -> Result<Token, ParserError> {
+    fn advance(&mut self) -> Result<Token<N>, ParserError<N>> {
         self.lexer
             .next()
             .ok_or(ParserError::UnexpectedEnd)?
             .map_err(Into::into)
     }
 
-    fn expect(&mut self, token: &Token) -> Result<(), ParserError> {
+    fn expect(&mut self, token: &Token<N>) -> Result<(), ParserError<N>> {
         let next_token = self.advance()?;
         if &next_token == token {
             Ok(())
@@ -46,7 +47,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn parse_program(&mut self) -> Result<Vec<Statement>, ParserError> {
+    pub fn parse_program(&mut self) -> Result<Vec<Statement<N>>, ParserError<N>> {
         let mut statements = Vec::new();
         while self.peek()?.is_some() {
             let statement = self.parse_statement()?;
@@ -58,7 +59,7 @@ impl<'a> Parser<'a> {
         Ok(statements)
     }
 
-    fn parse_statement(&mut self) -> Result<Statement, ParserError> {
+    fn parse_statement(&mut self) -> Result<Statement<N>, ParserError<N>> {
         match self.advance()? {
             Token::Identifier(var)
                 if matches!(
@@ -73,7 +74,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_assignment(&mut self, var_name: String) -> Result<Statement, ParserError> {
+    fn parse_assignment(&mut self, var_name: String) -> Result<Statement<N>, ParserError<N>> {
         self.expect(&Token::Punctuation(Punctuation::Assignment))?;
         let first_expression_token = self.advance()?;
         Ok(Statement::Assignment(
@@ -84,9 +85,9 @@ impl<'a> Parser<'a> {
 
     fn parse_expression(
         &mut self,
-        first: Token,
+        first: Token<N>,
         min_precedence: u8,
-    ) -> Result<Expression, ParserError> {
+    ) -> Result<Expression<N>, ParserError<N>> {
         let mut primary = self.parse_primary(first)?;
         loop {
             match self.peek()? {
@@ -115,7 +116,7 @@ impl<'a> Parser<'a> {
         Ok(primary)
     }
 
-    fn parse_primary(&mut self, first: Token) -> Result<Expression, ParserError> {
+    fn parse_primary(&mut self, first: Token<N>) -> Result<Expression<N>, ParserError<N>> {
         match first {
             Token::Number(num) => Ok(Expression::Number(num)),
             Token::Identifier(var_name) => match self.peek()? {

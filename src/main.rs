@@ -8,7 +8,7 @@ fn main() {
     stdout().flush().unwrap();
     stdin().read_line(&mut input).expect("Wrong input");
 
-    let mut parser = Parser::new(&input);
+    let mut parser = Parser::<f64>::new(&input);
     match parser.parse_program() {
         Err(e) => {
             dbg!(e);

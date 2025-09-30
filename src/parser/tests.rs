@@ -8,7 +8,7 @@ macro_rules! lexer_test {
         #[test]
         fn $name() {
 
-            let mut parser = crate::parser::Parser::new($input);
+            let mut parser = crate::parser::Parser::<f64>::new($input);
             let statements = parser.parse_program().unwrap();
 
             let expected_statements = vec![

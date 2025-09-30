@@ -7,14 +7,17 @@ pub mod token;
 use error::LexerError;
 use token::Token;
 
-use crate::lexer::fsm::{LexerFSM, Start};
+use crate::{
+    lexer::fsm::{LexerFSM, Start},
+    numeric::Numeric,
+};
 
 #[derive(Debug)]
-pub struct Lexer<'a> {
-    fsm: Option<LexerFSM<'a, Start>>,
+pub struct Lexer<'a, N: Numeric> {
+    fsm: Option<LexerFSM<'a, Start, N>>,
 }
 
-impl<'a> Lexer<'a> {
+impl<'a, N: Numeric> Lexer<'a, N> {
     pub fn new(input: &'a str) -> Self {
         Self {
             fsm: Some(LexerFSM::new(input)),
@@ -22,8 +25,8 @@ impl<'a> Lexer<'a> {
     }
 }
 
-impl<'a> Iterator for Lexer<'a> {
-    type Item = Result<Token, LexerError>;
+impl<'a, N: Numeric> Iterator for Lexer<'a, N> {
+    type Item = Result<Token<N>, LexerError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let fsm = self.fsm.take()?;

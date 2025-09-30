@@ -1,3 +1,5 @@
+use crate::numeric::Numeric;
+
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Associativity {
     Left,
@@ -64,8 +66,8 @@ impl Punctuation {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Token {
-    Number(f64),
+pub enum Token<N: Numeric> {
+    Number(N),
     Identifier(String),
     Operator(Operator),
     Punctuation(Punctuation),
