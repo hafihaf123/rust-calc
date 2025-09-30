@@ -1,5 +1,7 @@
-use crate::lexer::{error::LexerError, token::Token};
-use crate::numeric::Numeric;
+use crate::{
+    Numeric,
+    lexer::{error::LexerError, token::Token},
+};
 
 #[derive(Debug)]
 pub enum ParserError<N: Numeric> {

@@ -1,4 +1,6 @@
-use crate::numeric::Numeric;
+use num_traits::Num;
+
+use crate::Numeric;
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Associativity {
@@ -12,7 +14,7 @@ pub enum Operator {
     Minus,
     Star,
     Slash,
-    Caret,
+    // Caret,
 }
 
 impl Operator {
@@ -22,7 +24,7 @@ impl Operator {
             '-' => Some(Self::Minus),
             '*' => Some(Self::Star),
             '/' => Some(Self::Slash),
-            '^' => Some(Self::Caret),
+            // '^' => Some(Self::Caret),
             _ => None,
         }
     }
@@ -33,14 +35,26 @@ impl Operator {
             Operator::Minus => 1,
             Operator::Star => 2,
             Operator::Slash => 2,
-            Operator::Caret => 3,
+            // Operator::Caret => 3,
         }
     }
 
     pub fn associativity(&self) -> Associativity {
+        Associativity::Left
+    }
+
+    pub fn apply<N: Num>(&self, a: N, b: N) -> Result<N, String> {
         match self {
-            Operator::Caret => Associativity::Right,
-            _ => Associativity::Left,
+            Operator::Plus => Ok(a + b),
+            Operator::Minus => Ok(a - b),
+            Operator::Star => Ok(a * b),
+            Operator::Slash => {
+                if b == N::zero() {
+                    Err("Division by zero".to_owned())
+                } else {
+                    Ok(a / b)
+                }
+            }
         }
     }
 }

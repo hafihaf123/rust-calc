@@ -7,10 +7,8 @@ pub mod token;
 use error::LexerError;
 use token::Token;
 
-use crate::{
-    lexer::fsm::{LexerFSM, Start},
-    numeric::Numeric,
-};
+use crate::Numeric;
+use crate::lexer::fsm::{LexerFSM, Start};
 
 #[derive(Debug)]
 pub struct Lexer<'a, N: Numeric> {

@@ -1,10 +1,10 @@
-mod ast;
+pub mod ast;
 pub mod error;
 pub mod tests;
 
+use crate::Numeric;
 use crate::lexer::token::{Associativity, Operator, Punctuation};
 use crate::lexer::{Lexer, token::Token};
-use crate::numeric::Numeric;
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::error::ParserError;
 

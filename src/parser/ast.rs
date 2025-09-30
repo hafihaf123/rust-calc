@@ -1,6 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::{lexer::token::Operator, numeric::Numeric, parser::error::ParserError};
+use crate::Numeric;
+use crate::lexer::token::Operator;
+use crate::parser::error::ParserError;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression<N: Numeric> {
@@ -16,6 +18,16 @@ pub enum UnaryOp<N: Numeric> {
     Negative,
     Positive,
     _Marker(PhantomData<N>),
+}
+
+impl<N: Numeric> UnaryOp<N> {
+    pub fn apply(&self, a: N) -> N {
+        match self {
+            UnaryOp::Negative => N::zero() - a,
+            UnaryOp::Positive => a,
+            UnaryOp::_Marker(_) => unreachable!(),
+        }
+    }
 }
 
 impl<N: Numeric> TryFrom<Operator> for UnaryOp<N> {

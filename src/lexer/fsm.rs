@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 use std::str::Chars;
 
+use crate::Numeric;
 use crate::lexer::token::{Operator, Punctuation};
-use crate::numeric::Numeric;
 
 use super::error::LexerError;
 use super::token::Token;
@@ -126,7 +126,7 @@ impl<'a, N: Numeric> LexerFSM<'a, IntegerPart, N> {
             break;
         }
         Ok((
-            Token::Number(N::from_str(&self.ctx.buffer).map_err(|_| {
+            Token::Number(N::from_str_radix(&self.ctx.buffer, 10).map_err(|_| {
                 LexerError::InvalidNumber(self.ctx.buffer.clone(), self.ctx.position)
             })?),
             self,
@@ -144,7 +144,7 @@ impl<'a, N: Numeric> LexerFSM<'a, DecimalPart, N> {
             self.ctx.advance();
         }
         Ok((
-            Token::Number(N::from_str(&self.ctx.buffer).map_err(|_| {
+            Token::Number(N::from_str_radix(&self.ctx.buffer, 10).map_err(|_| {
                 LexerError::InvalidNumber(self.ctx.buffer.clone(), self.ctx.position)
             })?),
             self,

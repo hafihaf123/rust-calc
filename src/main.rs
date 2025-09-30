@@ -1,20 +1,27 @@
 use std::io::{Write, stdin, stdout};
 
-use rust_calc::parser::Parser;
+use rust_calc::evaluator::Evaluator;
 
 fn main() {
-    let mut input = String::new();
-    print!("parser> ");
-    stdout().flush().unwrap();
-    stdin().read_line(&mut input).expect("Wrong input");
+    println!("RustCalc REPL (type 'exit' to quit)");
 
-    let mut parser = Parser::<f64>::new(&input);
-    match parser.parse_program() {
-        Err(e) => {
-            dbg!(e);
+    let mut evaluator = Evaluator::<f64>::new();
+    loop {
+        print!("> ");
+        stdout().flush().unwrap();
+        let mut input = String::new();
+        if stdin().read_line(&mut input).is_err() {
+            break;
         }
-        Ok(statements) => statements.iter().for_each(|statement| {
-            dbg!(statement);
-        }),
+
+        if input.trim() == "exit" {
+            break;
+        }
+
+        match evaluator.parse(&input) {
+            Ok(Some(result)) => println!("{}", result),
+            Ok(None) => println!(),
+            Err(e) => eprintln!("Error: {:?}", e),
+        }
     }
 }
