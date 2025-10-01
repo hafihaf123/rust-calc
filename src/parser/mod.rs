@@ -2,20 +2,20 @@ pub mod ast;
 pub mod error;
 pub mod tests;
 
-use crate::Numeric;
 use crate::lexer::token::{Associativity, Operator, Punctuation};
 use crate::lexer::{Lexer, token::Token};
+use crate::numeric::NumericValue;
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::error::ParserError;
 
 use std::iter::Peekable;
 
-pub struct Parser<'a, N: Numeric> {
+pub struct Parser<'a, N: NumericValue> {
     lexer: Peekable<Lexer<'a, N>>,
     // current: Option<Token>,
 }
 
-impl<'a, N: Numeric> Parser<'a, N> {
+impl<'a, N: NumericValue> Parser<'a, N> {
     pub fn new(input: &'a str) -> Self {
         Self {
             lexer: Lexer::new(input).peekable(),

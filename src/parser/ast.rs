@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
-use crate::Numeric;
 use crate::lexer::token::Operator;
+use crate::numeric::NumericValue;
 use crate::parser::error::ParserError;
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expression<N: Numeric> {
+pub enum Expression<N: NumericValue> {
     Number(N),
     Variable(String),
     Unary(UnaryOp<N>, Box<Expression<N>>),
@@ -14,13 +14,13 @@ pub enum Expression<N: Numeric> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum UnaryOp<N: Numeric> {
+pub enum UnaryOp<N: NumericValue> {
     Negative,
     Positive,
     _Marker(PhantomData<N>),
 }
 
-impl<N: Numeric> UnaryOp<N> {
+impl<N: NumericValue> UnaryOp<N> {
     pub fn apply(&self, a: N) -> N {
         match self {
             UnaryOp::Negative => N::zero() - a,
@@ -30,7 +30,7 @@ impl<N: Numeric> UnaryOp<N> {
     }
 }
 
-impl<N: Numeric> TryFrom<Operator> for UnaryOp<N> {
+impl<N: NumericValue> TryFrom<Operator> for UnaryOp<N> {
     type Error = ParserError<N>;
     fn try_from(value: Operator) -> Result<UnaryOp<N>, ParserError<N>> {
         match value {
@@ -44,7 +44,7 @@ impl<N: Numeric> TryFrom<Operator> for UnaryOp<N> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Statement<N: Numeric> {
+pub enum Statement<N: NumericValue> {
     Assignment(String, Expression<N>),
     Expression(Expression<N>),
     Empty,

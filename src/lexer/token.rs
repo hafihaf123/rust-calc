@@ -1,6 +1,6 @@
 use num_traits::Num;
 
-use crate::Numeric;
+use crate::numeric::NumericValue;
 
 #[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Associativity {
@@ -80,7 +80,7 @@ impl Punctuation {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum Token<N: Numeric> {
+pub enum Token<N: NumericValue> {
     Number(N),
     Identifier(String),
     Operator(Operator),

@@ -1,9 +1,11 @@
-use crate::{Numeric, parser::error::ParserError};
+use crate::numeric::NumericValue;
+use crate::parser::error::ParserError;
 
 #[derive(Debug)]
-pub enum EvaluatorError<N: Numeric> {
+pub enum EvaluatorError<N: NumericValue> {
     ParserError(ParserError<N>),
     UnexpectedError,
     OperationFailed(String),
     UndefinedVariable(String),
+    UnknownFunction(String),
 }

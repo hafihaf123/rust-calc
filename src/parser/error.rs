@@ -1,17 +1,15 @@
-use crate::{
-    Numeric,
-    lexer::{error::LexerError, token::Token},
-};
+use crate::lexer::{error::LexerError, token::Token};
+use crate::numeric::NumericValue;
 
 #[derive(Debug)]
-pub enum ParserError<N: Numeric> {
+pub enum ParserError<N: NumericValue> {
     LexerError(LexerError),
     UnexpectedToken(Token<N>),
     UnexpectedEnd,
     InvalidAssignment,
 }
 
-impl<N: Numeric> From<LexerError> for ParserError<N> {
+impl<N: NumericValue> From<LexerError> for ParserError<N> {
     fn from(value: LexerError) -> Self {
         Self::LexerError(value)
     }

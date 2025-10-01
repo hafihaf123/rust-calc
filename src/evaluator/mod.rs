@@ -2,20 +2,21 @@ pub mod error;
 
 use std::collections::HashMap;
 
-use num_traits::Num;
-
 use crate::evaluator::error::EvaluatorError;
+use crate::numeric::{BuiltinFn, NumericValue};
 use crate::parser::Parser;
 use crate::parser::ast::{Expression, Statement};
 
-pub struct Evaluator<N: Num + Clone> {
+pub struct Evaluator<N: NumericValue, F: BuiltinFn<N>> {
     env: HashMap<String, N>,
+    builtins: F,
 }
 
-impl<N: Num + Clone> Evaluator<N> {
-    pub fn new() -> Self {
+impl<N: NumericValue, F: BuiltinFn<N>> Evaluator<N, F> {
+    pub fn new(builtins: F) -> Self {
         Self {
             env: HashMap::new(),
+            builtins,
         }
     }
 
@@ -60,13 +61,12 @@ impl<N: Num + Clone> Evaluator<N> {
                     self.eval_expression(*expression1)?,
                 )
                 .map_err(EvaluatorError::OperationFailed),
-            Expression::Call(_, expression) => todo!(),
+            Expression::Call(func_name, expression) => {
+                let argument = self.eval_expression(*expression)?;
+                self.builtins
+                    .call(&func_name, argument)
+                    .ok_or_else(|| EvaluatorError::UnknownFunction(func_name))
+            }
         }
-    }
-}
-
-impl<N: Num + Clone> Default for Evaluator<N> {
-    fn default() -> Self {
-        Self::new()
     }
 }

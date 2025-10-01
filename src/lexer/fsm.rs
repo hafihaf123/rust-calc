@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 use std::str::Chars;
 
-use crate::Numeric;
 use crate::lexer::token::{Operator, Punctuation};
+use crate::numeric::NumericValue;
 
 use super::error::LexerError;
 use super::token::Token;
@@ -38,7 +38,7 @@ impl<'a> FSMContext<'a> {
 }
 
 #[derive(Debug)]
-pub struct LexerFSM<'a, State, N: Numeric> {
+pub struct LexerFSM<'a, State, N: NumericValue> {
     // ctx: &'a mut FSMContext<'a>,
     ctx: FSMContext<'a>,
     _state: std::marker::PhantomData<(State, N)>,
@@ -50,7 +50,7 @@ pub struct LexerFSM<'a, State, N: Numeric> {
 //     }
 // }
 
-impl<'a, State, N: Numeric> LexerFSM<'a, State, N> {
+impl<'a, State, N: NumericValue> LexerFSM<'a, State, N> {
     fn into_state<S>(self) -> LexerFSM<'a, S, N> {
         LexerFSM::<S, N> {
             ctx: self.ctx,
@@ -68,7 +68,7 @@ pub struct DecimalPart;
 #[derive(Debug)]
 pub struct InIdentifier;
 
-impl<'a, N: Numeric> LexerFSM<'a, Start, N> {
+impl<'a, N: NumericValue> LexerFSM<'a, Start, N> {
     pub fn new(input: &'a str) -> Self {
         Self {
             ctx: FSMContext::new(input),
@@ -106,7 +106,7 @@ impl<'a, N: Numeric> LexerFSM<'a, Start, N> {
     }
 }
 
-impl<'a, N: Numeric> LexerFSM<'a, IntegerPart, N> {
+impl<'a, N: NumericValue> LexerFSM<'a, IntegerPart, N> {
     pub fn collect(mut self) -> Result<(Token<N>, LexerFSM<'a, IntegerPart, N>), LexerError> {
         self.ctx.buffer.clear();
         while let Some(c) = self.ctx.current_char {
@@ -134,7 +134,7 @@ impl<'a, N: Numeric> LexerFSM<'a, IntegerPart, N> {
     }
 }
 
-impl<'a, N: Numeric> LexerFSM<'a, DecimalPart, N> {
+impl<'a, N: NumericValue> LexerFSM<'a, DecimalPart, N> {
     pub fn collect(mut self) -> Result<(Token<N>, LexerFSM<'a, DecimalPart, N>), LexerError> {
         while let Some(c) = self.ctx.current_char {
             if !c.is_ascii_digit() {
@@ -152,7 +152,7 @@ impl<'a, N: Numeric> LexerFSM<'a, DecimalPart, N> {
     }
 }
 
-impl<'a, N: Numeric> LexerFSM<'a, InIdentifier, N> {
+impl<'a, N: NumericValue> LexerFSM<'a, InIdentifier, N> {
     pub fn collect(mut self) -> (Token<N>, LexerFSM<'a, InIdentifier, N>) {
         self.ctx.buffer.clear();
         while let Some(c) = self.ctx.current_char {
