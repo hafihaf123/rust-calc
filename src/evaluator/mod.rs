@@ -4,8 +4,8 @@ use std::collections::HashMap;
 
 use crate::evaluator::error::EvaluatorError;
 use crate::numeric::{BuiltinFn, NumericValue};
-use crate::parser::Parser;
 use crate::parser::ast::{Expression, Statement};
+use crate::parser::Parser;
 
 pub struct Evaluator<N: NumericValue, F: BuiltinFn<N>> {
     env: HashMap<String, N>,

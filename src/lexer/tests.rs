@@ -110,7 +110,5 @@ lexer_test!(
 lexer_test!(
     invalid_number_trailing_dot,
     "5.",
-    [
-        Err(LexerError::InvalidNumber("5.".to_string(), 2))
-    ]
+    [Err(LexerError::InvalidNumber("5.".to_string(), 2))]
 );

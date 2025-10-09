@@ -146,7 +146,10 @@ impl<'a, N: NumericValue> LexerFSM<'a, DecimalPart, N> {
         }
         // Check if at least one digit was added after the decimal point
         if self.ctx.buffer.len() == initial_len {
-            return Err(LexerError::InvalidNumber(self.ctx.buffer.clone(), self.ctx.position));
+            return Err(LexerError::InvalidNumber(
+                self.ctx.buffer.clone(),
+                self.ctx.position,
+            ));
         }
         Ok((
             Token::Number(N::from_str_radix(&self.ctx.buffer, 10).map_err(|_| {

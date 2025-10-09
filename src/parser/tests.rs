@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 use crate::lexer::token::Operator;
-use crate::parser::{Expression, Statement, ast::UnaryOp};
+use crate::parser::{ast::UnaryOp, Expression, Statement};
 
 /// Macro to generate lexer tests
 macro_rules! lexer_test {

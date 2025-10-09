@@ -1,4 +1,4 @@
-use std::io::{Write, stdin, stdout};
+use std::io::{stdin, stdout, Write};
 
 use rust_calc::evaluator::Evaluator;
 use rust_calc::numeric::BuiltinFn;

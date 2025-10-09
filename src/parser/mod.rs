@@ -3,7 +3,7 @@ pub mod error;
 pub mod tests;
 
 use crate::lexer::token::{Associativity, Operator, Punctuation};
-use crate::lexer::{Lexer, token::Token};
+use crate::lexer::{token::Token, Lexer};
 use crate::numeric::NumericValue;
 use crate::parser::ast::{Expression, Statement};
 use crate::parser::error::ParserError;
