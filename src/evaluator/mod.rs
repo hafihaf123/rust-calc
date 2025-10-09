@@ -27,7 +27,7 @@ impl<N: NumericValue, F: BuiltinFn<N>> Evaluator<N, F> {
             .parse_program()
             .map_err(EvaluatorError::ParserError)?
         {
-            res = self.eval_statement(statement)
+            res = self.eval_statement(statement);
         }
         res
     }
