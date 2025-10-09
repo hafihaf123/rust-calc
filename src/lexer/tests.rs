@@ -105,3 +105,12 @@ lexer_test!(
         Err(LexerError::UnexpectedChar('&', 3))
     ]
 );
+
+// Invalid number ending with decimal point (no digits after dot)
+lexer_test!(
+    invalid_number_trailing_dot,
+    "5.",
+    [
+        Err(LexerError::InvalidNumber("5.".to_string(), 2))
+    ]
+);

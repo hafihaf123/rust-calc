@@ -78,7 +78,7 @@ impl<'a, N: NumericValue> Parser<'a, N> {
         self.expect(&Token::Punctuation(Punctuation::Assignment))?;
         let first_expression_token = self.advance()?;
         Ok(Statement::Assignment(
-            var_name.clone(),
+            var_name,
             self.parse_expression(first_expression_token, 0)?,
         ))
     }
@@ -121,8 +121,10 @@ impl<'a, N: NumericValue> Parser<'a, N> {
             Token::Number(num) => Ok(Expression::Number(num)),
             Token::Identifier(var_name) => match self.peek()? {
                 Some(&Token::Punctuation(Punctuation::LeftParenthesis)) => {
-                    let left_parenthesis = self.advance()?;
-                    let argument = self.parse_primary(left_parenthesis)?;
+                    self.advance()?; // consume left parenthesis
+                    let next_token = self.advance()?;
+                    let argument = self.parse_expression(next_token, 0)?;
+                    self.expect(&Token::Punctuation(Punctuation::RightParenthesis))?;
                     Ok(Expression::Call(var_name, Box::new(argument)))
                 }
                 _ => Ok(Expression::Variable(var_name)),

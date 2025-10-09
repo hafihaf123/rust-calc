@@ -136,12 +136,17 @@ impl<'a, N: NumericValue> LexerFSM<'a, IntegerPart, N> {
 
 impl<'a, N: NumericValue> LexerFSM<'a, DecimalPart, N> {
     pub fn collect(mut self) -> Result<(Token<N>, LexerFSM<'a, DecimalPart, N>), LexerError> {
+        let initial_len = self.ctx.buffer.len();
         while let Some(c) = self.ctx.current_char {
             if !c.is_ascii_digit() {
                 break;
             }
             self.ctx.buffer.push(c);
             self.ctx.advance();
+        }
+        // Check if at least one digit was added after the decimal point
+        if self.ctx.buffer.len() == initial_len {
+            return Err(LexerError::InvalidNumber(self.ctx.buffer.clone(), self.ctx.position));
         }
         Ok((
             Token::Number(N::from_str_radix(&self.ctx.buffer, 10).map_err(|_| {

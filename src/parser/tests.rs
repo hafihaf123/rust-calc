@@ -167,3 +167,16 @@ lexer_test!(
         ),
     ]
 );
+
+lexer_test!(
+    function_call_with_expression,
+    "sqrt(2 + 3);",
+    [Statement::Expression(Expression::Call(
+        "sqrt".to_string(),
+        Box::new(Expression::Binary(
+            Box::new(Expression::Number(2f64)),
+            Operator::Plus,
+            Box::new(Expression::Number(3f64))
+        ))
+    )),]
+);
