@@ -1,20 +1,28 @@
 use std::env;
 use std::fmt::{Debug, Display};
 
+use num_bigfloat::BigFloat;
 use rust_calc_lib::evaluator::Evaluator;
 use rust_calc_lib::numeric::{BuiltinFn, NumericValue};
 use rustyline::DefaultEditor;
 
 struct DefaultBuiltins;
 
-impl BuiltinFn<f64> for DefaultBuiltins {
-    fn call(&self, name: &str, arg: f64) -> Option<f64> {
-        Some(match name {
-            "sin" => arg.sin(),
-            "sqrt" => arg.sqrt(),
-            "abs" => arg.abs(),
-            _ => return None,
-        })
+impl BuiltinFn<BigFloat> for DefaultBuiltins {
+    fn call(&self, name: &str, arg: BigFloat) -> Option<BigFloat> {
+        match name {
+            "sqrt" => Some(arg.sqrt()),
+            "sin" => Some(arg.sin()),
+            "cos" => Some(arg.cos()),
+            "tan" => Some(arg.tan()),
+            "exp" => Some(arg.exp()),
+            "ln" => Some(arg.ln()),
+            "deg2rad" => {
+                let pi = num_bigfloat::PI;
+                Some(arg * pi / BigFloat::from_f64(180.0))
+            }
+            _ => None,
+        }
     }
 }
 
