@@ -8,4 +8,5 @@ pub enum EvaluatorError<N: NumericValue> {
     OperationFailed(String),
     UndefinedVariable(String),
     UnknownFunction(String),
+    InvalidAssignment(String),
 }

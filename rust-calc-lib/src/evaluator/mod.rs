@@ -8,14 +8,16 @@ use crate::parser::Parser;
 use crate::parser::ast::{Expression, Statement};
 
 pub struct Evaluator<N: NumericValue, F: BuiltinFn<N>> {
-    env: HashMap<String, N>,
+    variables: HashMap<String, N>,
+    constants: HashMap<String, N>,
     builtins: F,
 }
 
 impl<N: NumericValue, F: BuiltinFn<N>> Evaluator<N, F> {
     pub fn new(builtins: F) -> Self {
         Self {
-            env: HashMap::new(),
+            variables: HashMap::new(),
+            constants: builtins.constants(),
             builtins,
         }
     }
@@ -35,8 +37,11 @@ impl<N: NumericValue, F: BuiltinFn<N>> Evaluator<N, F> {
     fn eval_statement(&mut self, statement: Statement<N>) -> Result<Option<N>, EvaluatorError<N>> {
         match statement {
             Statement::Assignment(var_name, expression) => {
+                if self.constants.contains_key(&var_name) {
+                    return Err(EvaluatorError::InvalidAssignment(var_name));
+                }
                 let expr_res = self.eval_expression(expression)?;
-                self.env.insert(var_name, expr_res);
+                self.variables.insert(var_name, expr_res);
                 Ok(None)
             }
             Statement::Expression(expression) => self.eval_expression(expression).map(Some),
@@ -48,8 +53,9 @@ impl<N: NumericValue, F: BuiltinFn<N>> Evaluator<N, F> {
         match expression {
             Expression::Number(n) => Ok(n),
             Expression::Variable(var) => self
-                .env
+                .constants
                 .get(&var)
+                .or_else(|| self.variables.get(&var))
                 .ok_or(EvaluatorError::UndefinedVariable(var))
                 .cloned(),
             Expression::Unary(unary_op, expression) => {

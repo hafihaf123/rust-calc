@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::env;
 use std::fmt::{Debug, Display};
 
@@ -23,6 +24,15 @@ impl BuiltinFn<BigFloat> for DefaultBuiltins {
             }
             _ => None,
         }
+    }
+
+    fn constants(&self) -> HashMap<String, BigFloat> {
+        let mut constants = HashMap::new();
+
+        constants.insert(String::from("pi"), num_bigfloat::PI);
+        constants.insert(String::from("e"), num_bigfloat::E);
+
+        constants
     }
 }
 
