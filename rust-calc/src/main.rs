@@ -1,11 +1,21 @@
 use std::collections::HashMap;
 use std::env;
-use std::fmt::{Debug, Display};
+use std::fmt::Debug;
 
 use num_bigfloat::BigFloat;
 use rust_calc_lib::evaluator::Evaluator;
 use rust_calc_lib::numeric::{BuiltinFn, NumericValue};
 use rustyline::DefaultEditor;
+
+pub trait PrettyDisplay {
+    fn pretty(&self) -> String;
+}
+
+impl PrettyDisplay for BigFloat {
+    fn pretty(&self) -> String {
+        self.to_f64().to_string()
+    }
+}
 
 struct DefaultBuiltins;
 
@@ -36,7 +46,7 @@ impl BuiltinFn<BigFloat> for DefaultBuiltins {
     }
 }
 
-fn repl<N: NumericValue + Debug + Display, F: BuiltinFn<N>>(evaluator: &mut Evaluator<N, F>) {
+fn repl<N: NumericValue + Debug + PrettyDisplay, F: BuiltinFn<N>>(evaluator: &mut Evaluator<N, F>) {
     println!("RustCalc REPL (type 'exit' to quit)");
     let mut rl = match DefaultEditor::new() {
         Ok(res) => res,
@@ -64,7 +74,7 @@ fn repl<N: NumericValue + Debug + Display, F: BuiltinFn<N>>(evaluator: &mut Eval
                 };
 
                 match evaluator.parse(&input) {
-                    Ok(Some(result)) => println!("{}", result),
+                    Ok(Some(result)) => println!("{}", result.pretty()),
                     Ok(None) => {}
                     Err(e) => eprintln!("Error: {:?}", e),
                 }
